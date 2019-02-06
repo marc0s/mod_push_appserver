@@ -198,7 +198,7 @@ local function init_connection(conn, host, port)
 	if not conn then module:log("error", "Could not create APNS socket: %s", tostring(err)); return nil; end
 	success, err = conn:connect(host, port);
 	if not success then module:log("error", "Could not connect APNS socket: %s", tostring(err)); return nil; end
-	
+
 	-- init tls and timeouts
 	conn, err = ssl.wrap(conn, params);
 	if not conn then module:log("error", "Could not tls-wrap APNS socket: %s", tostring(err)); return nil; end
@@ -245,7 +245,7 @@ local function apns_handler(event)
 		payload = '{"aps":{"content-available":1}}';
 	end
 	local frame, id = create_frame(settings["token"], payload, push_ttl, priority);
-	
+
 	conn = init_connection(conn, push_host, push_port);
 	if not conn then return "Error connecting to APNS"; end		-- error occured
 	
@@ -334,7 +334,7 @@ local function query_feedback_service()
 	if not conn then	-- error occured
 		return feedback_request_interval;		-- run timer again
 	end
-	
+
 	repeat
 		local feedback, err = conn:receive(6);
 		if err == "timeout" or err == "closed" then		-- no error occured (no data left)
@@ -347,7 +347,7 @@ local function query_feedback_service()
 		end
 		local timestamp = bin2long(string.sub(feedback, 1, 4));
 		local token_length = bin2short(string.sub(feedback, 5, 6));
-		
+
 		feedback, err = conn:receive(token_length);
 		if err then		-- timeout is also an error here, since the frame is incomplete in this case
 			module:log("error", "Could not receive data from APNS feedback socket (receive 2): %s", tostring(err));
@@ -355,7 +355,7 @@ local function query_feedback_service()
 		end
 		local token = bin2hex(string.sub(feedback, 1, token_length));
 		module:log("info", "Got feedback service entry for token '%s' timestamped with '%s", token, datetime.datetime(timestamp));
-		
+
 		if not module:fire_event("unregister-push-token", {token = token, type = "apns", timestamp = timestamp}) then
 			module:log("warn", "Could not unregister push token");
 		end

@@ -136,7 +136,7 @@ local function register_node(arguments)
 		push_store:set(arguments["node"], settings);
 		return settings;
 	end
-	
+
 	-- store this new token-node combination
 	settings["type"]       = arguments["type"];
 	settings["node"]       = arguments["node"];
@@ -176,23 +176,23 @@ local function registerPush(stanza, origin)
 	if not commandNode then return; end
 	local dataNode = commandNode:find("{jabber:x:data}");
 	if not dataNode then return; end
-	
+
 	-- extract command (only executing v1-register-push is supported)
 	local command = commandNode.attr.node;
 	local action = commandNode.attr.action;
 	if command ~= "v1-register-push" or action ~= "execute" then return; end
-	
+
 	-- extract data
 	local data, errors = register_form:data(dataNode);
 	if errors then return sendCommandError(origin, stanza); end
 	if not data["type"] or not data["node"] or not data["token"] then
 		sendCommandError(origin, stanza);
 	end
-	
+
 	-- register node
 	local settings = register_node(data);
 	if not settings then return sendCommandError(origin, stanza); end
-	
+
 	-- send command reply with sessionid set to uuid()
 	local reply = st.reply(stanza);
 	local form_data = { jid = module:get_host(); node = settings["node"]; secret = settings["secret"] };
@@ -203,7 +203,7 @@ local function registerPush(stanza, origin)
 		xmlns = "http://jabber.org/protocol/commands";
 	}):add_child(register_result_form:form(form_data));
 	origin.send(reply);
-	
+
 	return true;
 end
 
@@ -222,7 +222,7 @@ local options_form = dataform {
 
 module:hook("iq/host", function(event)
 	local stanza, origin = event.stanza, event.origin;
-	
+
 	-- handle register command
 	if stanza:find("{http://jabber.org/protocol/commands}command") then
 		return registerPush(stanza, origin);
@@ -246,14 +246,15 @@ module:hook("iq/host", function(event)
 	if not optionsNode then return sendError(origin, stanza); end
 	local data, errors = options_form:data(optionsNode);
 	if errors then return sendError(origin, stanza); end
-	
+
 	local node = publishNode.attr.node;
 	local secret = data["secret"];
 	if not node or not secret then return sendError(origin, stanza); end
-	
+
 	local settings = push_store:get(node);
-	if not settings or secret ~= settings["secret"] then return sendError(origin, stanza); end
-	
+	if not settings or not #settings then return sendError(origin, stanza); end
+	if secret ~= settings["secret"] then return sendError(origin, stanza); end
+
 	-- throttling
 	local throttle = create_throttle(settings["node"]);
 	if not throttle:poll(1) then
@@ -291,7 +292,7 @@ local function unregister_push_node(node, type)
 		module:log("debug", "settings were: %s", pretty.write(settings));
 		return "OK\n"..node.."\n"..settings["secret"];
 	end
-	
+
 	module:log("info", "Node not found in unregister, returning: 'ERROR', 'Node not found!'", tostring(node));
 	return "ERROR\nNode not found!";
 end
@@ -325,16 +326,16 @@ local function serve_register_v1(event, path)
 		module:log("warn", "Post body too large: %d bytes", #event.request.body);
 		return 400;
 	end
-	
+
 	local arguments = http.formdecode(event.request.body);
 	if not arguments["type"] or not arguments["node"] or not arguments["token"] then
 		module:log("warn", "Post data contains unexpected contents");
 		return 400;
 	end
-	
+
 	local settings = register_node(arguments);
 	if not settings then return 400; end
-	
+
 	module:log("info", "Registered push device, returning: 'OK', '%s', '%s'", tostring(arguments["node"]), tostring(settings["secret"]));
 	return "OK\n"..arguments["node"].."\n"..settings["secret"];
 end
@@ -351,13 +352,13 @@ local function serve_unregister_v1(event, path)
 		module:log("warn", "Post body too large: %d bytes", #event.request.body);
 		return 400;
 	end
-	
+
 	local arguments = http.formdecode(event.request.body);
 	if not arguments["type"] or not arguments["node"] then
 		module:log("warn", "Post data contains unexpected contents");
 		return 400;
 	end
-	
+
 	return unregister_push_node(arguments["node"], arguments["type"]);
 end
 
@@ -373,13 +374,13 @@ local function serve_push_v1(event, path)
 		module:log("warn", "Post body too large: %d bytes", #event.request.body);
 		return 400;
 	end
-	
+
 	local arguments = http.formdecode(event.request.body);
 	if not arguments["node"] or not arguments["secret"] then
 		module:log("warn", "Post data contains unexpected contents");
 		return 400;
 	end
-	
+
 	local node, secret = arguments["node"], arguments["secret"];
 	local settings = push_store:get(node);
 	if not settings or secret ~= settings["secret"] then

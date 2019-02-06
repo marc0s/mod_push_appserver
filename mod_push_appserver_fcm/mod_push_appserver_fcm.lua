@@ -17,7 +17,7 @@ module:depends("push_appserver");
 -- configuration
 local fcm_key = module:get_option_string("push_appserver_fcm_key", nil);						--push api key (no default)
 local capath = module:get_option_string("push_appserver_fcm_capath", "/etc/ssl/certs");			--ca path on debian systems
-local ciphers = module:get_option_string("push_appserver_fcm_ciphers", 
+local ciphers = module:get_option_string("push_appserver_fcm_ciphers",
 	"ECDHE-RSA-AES256-GCM-SHA384:"..
 	"ECDHE-ECDSA-AES256-GCM-SHA384:"..
 	"ECDHE-RSA-AES128-GCM-SHA256:"..
@@ -110,7 +110,7 @@ local function fcm_handler(event)
 			async_callback(fcm_error);
 			return;
 		end
-		
+
 		-- handle success
 		for k, result in pairs(response.results) do
 			if result.message_id then
