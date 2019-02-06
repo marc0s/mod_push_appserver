@@ -26,6 +26,7 @@ local ciphers = module:get_option_string("push_appserver_fcm_ciphers",
 local push_ttl = module:get_option_number("push_appserver_fcm_push_ttl", nil);					--no ttl (equals 4 weeks)
 local push_priority = module:get_option_string("push_appserver_fcm_push_priority", "high");		--high priority pushes (can be "high" or "normal")
 local push_endpoint = "https://fcm.googleapis.com/fcm/send";
+local send_empty_pushes = module:get_option_boolean("push_appserver_fcm_send_empty_pushes", true);
 
 -- high level network (https) functions
 local function send_request(data, callback)
@@ -65,7 +66,7 @@ local function fcm_handler(event)
 		["to"] = tostring(settings["token"]),
 		["collapse_key"] = "mod_push_appserver_fcm.collapse",
 		["priority"] = (push_priority=="high" and "high" or "normal"),
-		["data"] = {},
+		["data"] = {["type"] = "xmpp",  ["sender"] = tostring(summary["last-message-sender"]), ["body"] = tostring(summary["last-message-body"])},
 	};
 	if push_ttl and push_ttl > 0 then data["time_to_live"] = push_ttl; end		-- ttl is optional (google's default: 4 weeks)
 	

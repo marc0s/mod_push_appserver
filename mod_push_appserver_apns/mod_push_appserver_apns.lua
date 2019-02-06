@@ -34,6 +34,7 @@ local mutable_content = module:get_option_boolean("push_appserver_apns_mutable_c
 local push_ttl = module:get_option_number("push_appserver_apns_push_ttl", nil);					--no ttl
 local push_priority = module:get_option_string("push_appserver_apns_push_priority", "auto");	--automatically decide push priority
 local sandbox = module:get_option_boolean("push_appserver_apns_sandbox", true);					--use APNS sandbox
+local send_empty_pushes = module:get_option_boolean("push_appserver_apns_send_empty_pushes", true);
 local feedback_request_interval = module:get_option_number("push_appserver_apns_feedback_request_interval", 3600*24);	--24 hours
 local push_host = sandbox and "gateway.sandbox.push.apple.com" or "gateway.push.apple.com";
 local push_port = 2195;
@@ -236,11 +237,16 @@ local function apns_handler(event)
 	-- prepare data to send (using latest binary format, not the legacy binary format or the new http/2 format)
 	local payload;
 	local priority = push_priority;
+
+	if send_empty_pushes == false and (summary["last-message-body"] == nil or tostring(summary["last-message-body"]) == '') then
+		return;
+	end
+
 	if push_priority == "auto" then
 		priority = (summary and summary["last-message-body"] ~= nil) and "high" or "silent";
 	end
 	if priority == "high" then
-		payload = '{"aps":{'..(mutable_content and '"mutable-content":"1",' or '')..'"alert":{"title": "dummy", "body": "dummy"},"sound":"default"}}';
+		payload = '{"aps": {"sound": "default"}, "type": "xmpp", "sender": "'..tostring(summary["last-message-sender"])..'", "body": "'..tostring(summary["last-message-body"])..'"}';
 	else
 		payload = '{"aps":{"content-available":1}}';
 	end
