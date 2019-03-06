@@ -213,6 +213,7 @@ local summary_form = dataform {
 	{ name = "pending-subscription-count"; type = "text-single"; };
 	{ name = "last-message-sender"; type = "jid-single"; };
 	{ name = "last-message-body"; type = "text-single"; };
+	{ name = "last-message-oob"; type = "text-single"; };
 };
 
 local options_form = dataform {

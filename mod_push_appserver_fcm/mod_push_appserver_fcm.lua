@@ -61,12 +61,22 @@ end
 
 -- handlers
 local function fcm_handler(event)
-	local settings, summary, async_callback = event.settings, event.summary, event.async_callback;
+	local settings = event.settings;
+	local summary = event.summary;
+
+	if send_empty_pushes == false and (summary["last-message-body"] == nil or tostring(summary["last-message-body"]) == '' or summary["last-message-oob"] == nil) then
+		return;
+	end
+
 	local data = {
 		["to"] = tostring(settings["token"]),
 		["collapse_key"] = "mod_push_appserver_fcm.collapse",
 		["priority"] = (push_priority=="high" and "high" or "normal"),
-		["data"] = {["type"] = "xmpp",  ["sender"] = tostring(summary["last-message-sender"]), ["body"] = tostring(summary["last-message-body"])},
+		["data"] = {
+			["type"] = "xmpp",
+			["sender"] = tostring(summary["last-message-sender"]),
+			["body"] = tostring(summary["last-message-body"] or summary["last-message-oob"])
+		},
 	};
 	if push_ttl and push_ttl > 0 then data["time_to_live"] = push_ttl; end		-- ttl is optional (google's default: 4 weeks)
 	

@@ -238,15 +238,15 @@ local function apns_handler(event)
 	local payload;
 	local priority = push_priority;
 
-	if send_empty_pushes == false and (summary["last-message-body"] == nil or tostring(summary["last-message-body"]) == '') then
+	if send_empty_pushes == false and (summary["last-message-body"] == nil or tostring(summary["last-message-body"]) == '' or summary["last-message-oob"] == nil) then
 		return;
 	end
 
 	if push_priority == "auto" then
-		priority = (summary and summary["last-message-body"] ~= nil) and "high" or "silent";
+		priority = (summary and (summary["last-message-body"] ~= nil or summary["last-message-oob"] ~= nil)) and "high" or "silent";
 	end
 	if priority == "high" then
-		payload = '{"aps": {"sound": "default"}, "type": "xmpp", "sender": "'..tostring(summary["last-message-sender"])..'", "body": "'..tostring(summary["last-message-body"])..'"}';
+		payload = '{"aps": {"sound": "default"}, "type": "xmpp", "sender": "'..tostring(summary["last-message-sender"])..'", "body": "'..tostring(summary["last-message-body"] or summary["last-message-oob"])..'"}';
 	else
 		payload = '{"aps":{"content-available":1}}';
 	end
