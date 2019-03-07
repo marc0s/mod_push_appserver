@@ -238,8 +238,10 @@ local function apns_handler(event)
 	local payload;
 	local priority = push_priority;
 
-	if send_empty_pushes == false and (summary["last-message-body"] == nil or tostring(summary["last-message-body"]) == '' or summary["last-message-oob"] == nil) then
-		return;
+	local empty_body = summary["last-message-body"] == nil or tostring(summary["last-message-body"]) == '';
+	local empty_oob = summary["last-message-oob"] == nil or tostring(summary["last-message-oob"]) == '';
+	if send_empty_pushes == false and empty_body and empty_oob then
+		return false; -- false == no error
 	end
 
 	if push_priority == "auto" then

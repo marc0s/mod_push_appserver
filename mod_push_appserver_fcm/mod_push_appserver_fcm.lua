@@ -63,9 +63,10 @@ end
 local function fcm_handler(event)
 	local settings = event.settings;
 	local summary = event.summary;
-
-	if send_empty_pushes == false and (summary["last-message-body"] == nil or tostring(summary["last-message-body"]) == '' or summary["last-message-oob"] == nil) then
-		return;
+	local empty_body = summary["last-message-body"] == nil or tostring(summary["last-message-body"]) == '';
+	local empty_oob = summary["last-message-oob"] == nil or tostring(summary["last-message-oob"]) == '';
+	if send_empty_pushes == false and empty_body and empty_oob then
+		return false; -- false == no error
 	end
 
 	local data = {
