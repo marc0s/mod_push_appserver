@@ -30,7 +30,7 @@ local debugging = module:get_option_boolean("push_appserver_debugging", false);	
 local rate_limit = module:get_option_number("push_appserver_rate_limit", 5);		-- allow only five pushes per second (try to mitigate DOS attacks)
 
 -- global state
-local throttles = {}
+-- local throttles = {}
 
 --- sanity
 local parser_body_limit = module:context("*"):get_option_number("http_max_content_size", 10*1024*1024);
@@ -99,12 +99,12 @@ local push_store = (function()
 end)();
 
 -- throttling (try to prevent denial of service attacks)
-local function create_throttle(node)
-	if not throttles[node] then
-		throttles[node] = t.create(rate_limit, 1);
-	end
-	return throttles[node];
-end
+-- local function create_throttle(node)
+-- 	if not throttles[node] then
+-- 		throttles[node] = t.create(rate_limit, 1);
+-- 	end
+-- 	return throttles[node];
+-- end
 
 -- html helper
 local function html_skeleton()
@@ -257,12 +257,12 @@ module:hook("iq/host", function(event)
 	if secret ~= settings["secret"] then return sendError(origin, stanza); end
 
 	-- throttling
-	local throttle = create_throttle(settings["node"]);
-	if not throttle:poll(1) then
-		module:log("warn", "Rate limit for node '%s' reached, ignoring push request (and returning 'wait' error)", settings["node"]);
-		origin.send(st.error_reply(stanza, "wait", "resource-constraint", "Ratelimit reached"));
-		return true;
-	end
+	-- local throttle = create_throttle(settings["node"]);
+	-- if not throttle:poll(1) then
+	-- 	module:log("warn", "Rate limit for node '%s' reached, ignoring push request (and returning 'wait' error)", settings["node"]);
+	-- 	origin.send(st.error_reply(stanza, "wait", "resource-constraint", "Ratelimit reached"));
+	-- 	return true;
+	-- end
 	
 	-- callback to handle synchronous and asynchronous iq responses
 	local async_callback = function(success)
@@ -288,7 +288,7 @@ local function unregister_push_node(node, type)
 	local settings = push_store:get(node);
 	if settings["type"] == type then
 		push_store:set(node, nil);
-		throttles[node] = nil;
+		-- throttles[node] = nil;
 		module:log("info", "Unregistered push device, returning: 'OK', '%s', '%s'", tostring(node), tostring(settings["secret"]));
 		module:log("debug", "settings were: %s", pretty.write(settings));
 		return "OK\n"..node.."\n"..settings["secret"];
@@ -390,11 +390,11 @@ local function serve_push_v1(event, path)
 	end
 	
 	-- throttling
-	local throttle = create_throttle(node);
-	if not throttle:poll(1) then
-		module:log("warn", "Rate limit for node '%s' reached, ignoring push request (and returning error 'Ratelimit reached')", node);
-		return "ERROR\nRatelimit reached!";
-	end
+	-- local throttle = create_throttle(node);
+	-- if not throttle:poll(1) then
+	-- 	module:log("warn", "Rate limit for node '%s' reached, ignoring push request (and returning error 'Ratelimit reached')", node);
+	-- 	return "ERROR\nRatelimit reached!";
+	-- end
 	
 	local async_callback = function(success)
 		if success or success == nil then
