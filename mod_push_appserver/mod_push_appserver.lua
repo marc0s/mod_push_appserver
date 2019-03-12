@@ -123,23 +123,40 @@ local function get_html_form(...)
 end
 
 -- internal functions
+local function cleanup_previous_tokens(token)
+	-- Deletes any node registered with given token
+	local deleted = 0;
+	for node in push_store:list() do
+		local registry = push_store:get(node);
+		if registry["token"] == token then
+			module:log("debug", "Found registry with token=%s. Deleting...", token)
+			push_store:set(node, nil)
+			deleted = deleted + 1
+		end
+	end
+	return deleted
+end
+
 local function register_node(arguments)
-	-- if we already know this node and push type combination just use the old secret to provide a more stable api
+	local secret = nil;
 	local settings = push_store:get(arguments["node"]);
+	-- check for duplicated tokens
+	local deleted = cleanup_previous_tokens(arguments["token"])
+	if deleted > 0 then
+		module:log("debug", "Deleted %s node(s) with same token", deleted)
+	end
+	-- if we already know this node and push type combination just use the old secret to provide a more stable api
 	if settings["type"] == arguments["type"] then
-		module:log("info", "Re-registered push device (%s)",
-			settings["token"] == arguments["token"] and "same token" or "token changed");
+		module:log("info", "Re-registered push device (%s)", settings["token"] == arguments["token"] and "same token" or "token changed");
 		settings["token"] = arguments["token"];
 		settings["renewed"] = datetime.datetime();
-		module:log("debug", "settings: %s", pretty.write(settings));
-		push_store:set(arguments["node"], settings);
-		return settings;
+		secret = settings["secret"]
 	end
 	
 	-- store this new token-node combination
 	settings["type"]       = arguments["type"];
 	settings["node"]       = arguments["node"];
-	settings["secret"]     = hashes.hmac_sha256(arguments["type"]..":"..arguments["token"].."@"..arguments["node"], os.clock(), true);
+	settings["secret"]     = secret or hashes.hmac_sha256(arguments["type"]..":"..arguments["token"].."@"..arguments["node"], os.clock(), true);
 	settings["token"]      = arguments["token"];
 	settings["registered"] = datetime.datetime();
 	module:log("debug", "settings: %s", pretty.write(settings));
