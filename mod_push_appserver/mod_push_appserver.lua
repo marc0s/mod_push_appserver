@@ -149,7 +149,6 @@ local function register_node(arguments)
 	-- if we already know this node and push type combination just use the old secret to provide a more stable api
 	if settings["type"] == arguments["type"] then
 		module:log("info", "Re-registered push device (%s)", settings["token"] == arguments["token"] and "same token" or "token changed");
-		settings["token"] = arguments["token"];
 		settings["renewed"] = datetime.datetime();
 		secret = settings["secret"]
 	end
