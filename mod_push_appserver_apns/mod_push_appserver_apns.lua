@@ -248,7 +248,8 @@ local function apns_handler(event)
 		priority = (summary and (summary["last-message-body"] ~= nil or summary["last-message-oob"] ~= nil)) and "high" or "silent";
 	end
 	if priority == "high" then
-		payload = '{"aps": {"sound": "default"}, "type": "xmpp", "sender": "'..tostring(summary["last-message-sender"])..'", "body": "'..tostring(summary["last-message-body"] or summary["last-message-oob"])..'"}';
+		local real_body = tostring(summary["last-message-body"] or summary["last-message-oob"]):gsub("\n", " ");
+		payload = '{"aps": {"sound": "default"}, "type": "xmpp", "sender": "'..tostring(summary["last-message-sender"])..'", "body": "'..real_body..'"}';
 	else
 		payload = '{"aps":{"content-available":1}}';
 	end
