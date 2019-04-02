@@ -14,6 +14,7 @@ local string = require "string";
 local t_remove = table.remove;
 local datetime = require "util.datetime";
 local hashes = require "util.hashes";
+local json = require "util.json";
 
 -- this is the master module
 module:depends("push_appserver");
@@ -235,7 +236,9 @@ end
 local function apns_handler(event)
 	local settings, summary, async_callback = event.settings, event.summary, event.async_callback;
 	-- prepare data to send (using latest binary format, not the legacy binary format or the new http/2 format)
-	local payload;
+	local payload = {
+		aps = {};
+	};
 	local priority = push_priority;
 
 	local empty_body = summary["last-message-body"] == nil or tostring(summary["last-message-body"]) == '';
@@ -248,12 +251,20 @@ local function apns_handler(event)
 		priority = (summary and (summary["last-message-body"] ~= nil or summary["last-message-oob"] ~= nil)) and "high" or "silent";
 	end
 	if priority == "high" then
-		local real_body = tostring(summary["last-message-body"] or summary["last-message-oob"]):gsub("\n", " ");
-		payload = '{"aps": {"sound": "default"}, "type": "xmpp", "sender": "'..tostring(summary["last-message-sender"])..'", "body": "'..real_body..'"}';
+		local real_body = tostring(summary["last-message-body"] or summary["last-message-oob"]);
+		payload.aps = {
+			sound = "default";
+			type = "xmpp";
+			sender = tostring(summary["last-message-sender"]);
+			body = real_body;
+		};
 	else
-		payload = '{"aps":{"content-available":1}}';
+		payload.aps = {
+			["content-available"] = 1;
+		};
 	end
-	local frame, id = create_frame(settings["token"], payload, push_ttl, priority);
+	module:log("debug", "JSON-encoded payload: %s", json.encode(payload))
+	local frame, id = create_frame(settings["token"], json.encode(payload), push_ttl, priority);
 
 	conn = init_connection(conn, push_host, push_port);
 	if not conn then return "Error connecting to APNS"; end		-- error occured
