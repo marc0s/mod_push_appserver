@@ -251,17 +251,20 @@ local function apns_handler(event)
 		priority = (summary and (summary["last-message-body"] ~= nil or summary["last-message-oob"] ~= nil)) and "high" or "silent";
 	end
 	if priority == "high" then
+		local sender = tostring(summary["last-message-sender"]);
 		local real_body = tostring(summary["last-message-body"] or summary["last-message-oob"]);
 		payload.aps = {
 			sound = "default";
-			type = "xmpp";
-			sender = tostring(summary["last-message-sender"]);
-			body = real_body;
+			alert = {
+				title = sender;
+				body = real_body;
+			};
 		};
+		payload.type = "xmpp";
+		payload.sender = sender;
+		payload.body = real_body;
 	else
-		payload.aps = {
-			["content-available"] = 1;
-		};
+		payload.aps["content-available"] = 1;
 	end
 	module:log("debug", "JSON-encoded payload: %s", json.encode(payload))
 	local frame, id = create_frame(settings["token"], json.encode(payload), push_ttl, priority);
